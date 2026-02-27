@@ -30,6 +30,7 @@ import org.eclipse.gef.EditPartViewer;
 import org.eclipse.gef.SharedCursors;
 import org.eclipse.gef.commands.CompoundCommand;
 import org.eclipse.gef.editparts.FreeformGraphicalRootEditPart;
+import org.eclipse.gef.editparts.ScalableFreeformRootEditPart;
 import org.eclipse.gef.requests.LocationRequest;
 import org.eclipse.gef.tools.CreationTool;
 import org.eclipse.swt.SWT;
@@ -106,10 +107,23 @@ final class ECCEditorEditDomain extends DefaultEditDomain {
 			handleMove();
 		}
 
-		public void performCreation() {
+		public void performCreation(final EditPartViewer viewer) {
+
+			if (viewer == null || point == null || sourceState == null) {
+				return;
+			}
+
+			if (!(viewer.getRootEditPart() instanceof final ScalableFreeformRootEditPart root)) {
+				return;
+			}
+
 			final ECState destState = (ECState) getFactory().getNewObject();
 
-			final Position pos = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(point.x, point.y);
+			final Point translated = point.getCopy();
+			root.getContentPane().translateToRelative(translated);
+
+			final Position pos = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(translated.x,
+					translated.y);
 
 			final CreateECStateCommand createStateCommand = new CreateECStateCommand(destState, pos, getECC());
 
@@ -118,12 +132,11 @@ final class ECCEditorEditDomain extends DefaultEditDomain {
 
 			createTransitionCommand.setDestinationLocation(point);
 
-			final CompoundCommand compCom = new CompoundCommand();
-			compCom.add(createStateCommand);
-			compCom.add(createTransitionCommand);
+			final CompoundCommand compound = new CompoundCommand();
+			compound.add(createStateCommand);
+			compound.add(createTransitionCommand);
 
-			setCurrentCommand(compCom);
-			performCreation(1);
+			viewer.getEditDomain().getCommandStack().execute(compound);
 		}
 
 		private ECC getECC() {
@@ -182,16 +195,20 @@ final class ECCEditorEditDomain extends DefaultEditDomain {
 	@Override
 	public void mouseUp(final MouseEvent mouseEvent, final EditPartViewer viewer) {
 		super.mouseUp(mouseEvent, viewer);
+
 		if (transition) {
 			if (createTransitionAndState && ((AdvancedPanningSelectionTool) getDefaultTool())
 					.getTargetEditPart() instanceof FreeformGraphicalRootEditPart) {
+
 				transitionStateCreationTool
 						.setLocationActivation(((ECCPanningSelectionTool) getDefaultTool()).getLastLocation());
-				setActiveTool(transitionStateCreationTool);
-				transitionStateCreationTool.performCreation();
-				setActiveTool(getDefaultTool());
+
+				// 👇 USE THE viewer PARAMETER DIRECTLY
+				transitionStateCreationTool.performCreation(viewer);
+
 				createTransitionAndState = false;
 			}
+
 			transition = false;
 			setActiveTool(getDefaultTool());
 		}

@@ -30,8 +30,6 @@ import org.eclipse.gef.EditPart;
 import org.eclipse.gef.EditPolicy;
 import org.eclipse.gef.Request;
 import org.eclipse.gef.commands.Command;
-import org.eclipse.gef.editparts.ScalableFreeformRootEditPart;
-import org.eclipse.gef.editparts.ZoomManager;
 import org.eclipse.gef.editpolicies.XYLayoutEditPolicy;
 import org.eclipse.gef.requests.ChangeBoundsRequest;
 import org.eclipse.gef.requests.CreateRequest;
@@ -82,7 +80,4 @@ public class ECCXYLayoutEditPolicy extends XYLayoutEditPolicy {
 		return null;
 	}
 
-	protected ZoomManager getZoomManager() {
-		return ((ScalableFreeformRootEditPart) (getHost().getRoot())).getZoomManager();
-	}
 }

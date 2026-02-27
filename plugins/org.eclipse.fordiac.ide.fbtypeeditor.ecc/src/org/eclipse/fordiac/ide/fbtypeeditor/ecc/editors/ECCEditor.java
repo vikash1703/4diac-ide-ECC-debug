@@ -55,6 +55,7 @@ import org.eclipse.gef.LayerConstants;
 import org.eclipse.gef.Request;
 import org.eclipse.gef.editparts.ScalableFreeformRootEditPart;
 import org.eclipse.gef.editparts.ZoomManager;
+//import org.eclipse.gef.editparts.ZoomManager;
 import org.eclipse.gef.palette.PaletteRoot;
 import org.eclipse.gef.tools.MarqueeSelectionTool;
 import org.eclipse.gef.ui.actions.ActionRegistry;
@@ -126,7 +127,7 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 		// position for state creation
 		final IAction action = getActionRegistry().getAction(NewStateAction.CREATE_STATE);
 		((NewStateAction) action).setViewerControl((FigureCanvas) viewer.getControl());
-		((NewStateAction) action).setZoomManager(getZoomManger());
+		// ((NewStateAction) action).setZoomManager(getZoomManger());
 	}
 
 	@Override
