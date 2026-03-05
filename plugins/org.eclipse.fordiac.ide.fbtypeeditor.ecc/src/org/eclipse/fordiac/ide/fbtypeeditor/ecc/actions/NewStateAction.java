@@ -20,10 +20,12 @@ import org.eclipse.fordiac.ide.fbtypeeditor.ecc.commands.CreateECStateCommand;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editors.ECCEditor;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editors.StateCreationFactory;
 import org.eclipse.fordiac.ide.model.CoordinateConverter;
+import org.eclipse.fordiac.ide.model.libraryElement.ECC;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
 import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.fordiac.ide.ui.imageprovider.FordiacImage;
-import org.eclipse.gef.editparts.ZoomManager;
+import org.eclipse.gef.EditPartViewer;
+import org.eclipse.gef.GraphicalEditPart;
 import org.eclipse.gef.ui.actions.WorkbenchPartAction;
 import org.eclipse.ui.IWorkbenchPart;
 
@@ -38,7 +40,6 @@ public class NewStateAction extends WorkbenchPartAction {
 	private static StateCreationFactory stateFactory = new StateCreationFactory();
 	private FigureCanvas viewerControl;
 	private org.eclipse.swt.graphics.Point pos = new org.eclipse.swt.graphics.Point(0, 0);
-	private ZoomManager zoomManager;
 
 	public NewStateAction(final IWorkbenchPart part) {
 		super(part);
@@ -54,10 +55,6 @@ public class NewStateAction extends WorkbenchPartAction {
 		}
 	}
 
-	public void setZoomManager(final ZoomManager zoomManager) {
-		this.zoomManager = zoomManager;
-	}
-
 	@Override
 	protected boolean calculateEnabled() {
 		return true; // we can always be enabled
@@ -67,15 +64,22 @@ public class NewStateAction extends WorkbenchPartAction {
 	public void run() {
 		final ECCEditor editor = (ECCEditor) getWorkbenchPart();
 
-		final Point location = viewerControl.getViewport().getViewLocation();
-		final Point realPos = new Point(pos.x + location.x, pos.y + location.y);
-		realPos.scale(1.0 / zoomManager.getZoom());
+		final ECC ecc = editor.getModel();
+		final Point clickPos = new Point(pos.x, pos.y);
+
+		final EditPartViewer viewer = editor.getAdapter(EditPartViewer.class);
+		if (viewer != null) {
+			final Object eccEditPart = viewer.getEditPartRegistry().get(ecc);
+			if (eccEditPart instanceof final GraphicalEditPart gep) {
+				gep.getFigure().translateToRelative(clickPos);
+			}
+		}
 
 		final ECState model = (ECState) stateFactory.getNewObject();
 
-		final Position posModel = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(realPos.x, realPos.y);
+		final Position posModel = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(clickPos.x, clickPos.y);
 
-		execute(new CreateECStateCommand(model, posModel, editor.getModel()));
+		execute(new CreateECStateCommand(model, posModel, ecc));
 
 		editor.outlineSelectionChanged(model);
 	}
