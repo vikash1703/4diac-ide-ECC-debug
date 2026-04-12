@@ -48,6 +48,8 @@ public final class ECStateFigure extends Figure implements InteractionStyleFigur
 
 	private static final int SPINE_WIDTH = 4;
 
+	private final ECState state;
+
 	private static final Insets STATE_INSET = new Insets(MARGIN_VERTICAL, MARGIN_HORIZONTAL, MARGIN_VERTICAL,
 			MARGIN_HORIZONTAL);
 
@@ -62,10 +64,11 @@ public final class ECStateFigure extends Figure implements InteractionStyleFigur
 	};
 
 	public ECStateFigure(final ECState state) {
+		this.state = state;
 		final ToolbarLayout tbLayout = new ToolbarLayout();
 		tbLayout.setStretchMinorAxis(false);
 		tbLayout.setHorizontal(true);
-		tbLayout.setSpacing(-SPINE_WIDTH / 2); // this makes state name label overlap the spine
+		tbLayout.setSpacing(-SPINE_WIDTH / 2);
 		setLayoutManager(tbLayout);
 
 		add(createStateNameLabel(state));
@@ -218,5 +221,15 @@ public final class ECStateFigure extends Figure implements InteractionStyleFigur
 			return DOUBLE_BORDER_INSET;
 		}
 
+	}
+
+	public Rectangle getConnectionBounds() {
+		final Rectangle bounds = getBounds().getCopy();
+		if (state == null || state.getECAction().isEmpty()) {
+			return bounds;
+		}
+		bounds.width = nameLabel.getBounds().width;
+		bounds.height = nameLabel.getBounds().height;
+		return bounds;
 	}
 }

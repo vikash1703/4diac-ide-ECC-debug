@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2026 Johannes Kepler University Linz
+ * Copyright (c) 2026 Vikash Kumar Sinha
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *
  * Contributors:
- *   Vikash Kumar - initial implementation
+ *   Vikash Kumar Sinha - initial implementation
  *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.figures;
 
@@ -18,7 +18,6 @@ import java.util.List;
 
 import org.eclipse.draw2d.AbstractConnectionAnchor;
 import org.eclipse.draw2d.IFigure;
-import org.eclipse.draw2d.Label;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
@@ -52,26 +51,22 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 		getOwner().translateToAbsolute(totalBounds);
 
 		final Point center = totalBounds.getCenter();
-
 		final Point ref = (reference != null) ? reference : center;
 
 		final Edge edge = edgeForReference(center, ref);
 
 		if (edge == Edge.RIGHT) {
-			return applySpacing(totalBounds, new Point(totalBounds.x + totalBounds.width, totalBounds.getCenter().y),
-					false, edge);
+			return applySpacing(totalBounds, new Point(totalBounds.x + totalBounds.width, center.y), false, edge);
 		}
 
-		if (getOwner() instanceof ECStateFigure) {
-			final Label nameLabel = ((ECStateFigure) getOwner()).getNameLabel();
-			final Rectangle nameBounds = nameLabel.getBounds().getCopy();
-
-			nameLabel.translateToAbsolute(nameBounds);
+		if (getOwner() instanceof final ECStateFigure stateFigure) {
+			final Rectangle connBounds = stateFigure.getConnectionBounds().getCopy();
+			stateFigure.translateToAbsolute(connBounds);
 
 			return switch (edge) {
-			case TOP -> applySpacing(nameBounds, nameBounds.getTop(), true, edge);
-			case LEFT -> applySpacing(nameBounds, nameBounds.getLeft(), false, edge);
-			case BOTTOM -> applySpacing(nameBounds, nameBounds.getBottom(), true, edge);
+			case TOP -> applySpacing(connBounds, connBounds.getTop(), true, edge);
+			case LEFT -> applySpacing(connBounds, connBounds.getLeft(), false, edge);
+			case BOTTOM -> applySpacing(connBounds, connBounds.getBottom(), true, edge);
 			default -> applySpacing(totalBounds, new Point(totalBounds.x + totalBounds.width, center.y), false, edge);
 			};
 		}
@@ -167,9 +162,16 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 		final Point center = bounds.getCenter();
 
 		final Point otherPos = other.getPosition().toScreenPoint();
-		final int halfW = bounds.width / 2;
-		final int halfH = bounds.height / 4; // ← 12 hata diya
-		final Point otherCenter = new Point(otherPos.x + halfW, otherPos.y + halfH);
+
+		final Rectangle connBounds;
+		if (getOwner() instanceof final ECStateFigure stateFigure) {
+			connBounds = stateFigure.getConnectionBounds().getCopy();
+			stateFigure.translateToAbsolute(connBounds);
+		} else {
+			connBounds = bounds;
+		}
+
+		final Point otherCenter = new Point(otherPos.x + connBounds.width / 2, otherPos.y + connBounds.height / 2);
 
 		final int dx = otherCenter.x - center.x;
 		final int dy = otherCenter.y - center.y;
