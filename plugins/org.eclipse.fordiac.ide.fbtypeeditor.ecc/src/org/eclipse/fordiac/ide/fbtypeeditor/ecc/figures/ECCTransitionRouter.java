@@ -33,7 +33,6 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 
 	@Override
 	public void route(final Connection conn) {
-
 		if (!(conn instanceof ECTransitionFigure)) {
 			super.route(conn);
 			return;
@@ -45,6 +44,15 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 			return;
 		}
 
+		final boolean isSelfLoop = conn.getSourceAnchor() != null && conn.getTargetAnchor() != null
+				&& conn.getSourceAnchor().getOwner() == conn.getTargetAnchor().getOwner();
+
+		if (isSelfLoop) {
+			routeSelfLoop(conn, bp);
+			return;
+		}
+
+		// Normal routing
 		final PrecisionPoint p4Model = new PrecisionPoint(bp.getLocation());
 		conn.translateToAbsolute(p4Model);
 
@@ -58,7 +66,6 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 
 		final Vector seg1 = new Vector(p1, p4);
 		final Vector seg2 = new Vector(p4, p7);
-
 		final double len1 = Math.max(seg1.getLength(), MIN_LENGTH);
 		final double len2 = Math.max(seg2.getLength(), MIN_LENGTH);
 
@@ -69,9 +76,66 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 		final PrecisionPoint p6 = calcOrthogonalControlPoint(p7, conn.getTargetAnchor().getOwner(), ctrlDist2, conn);
 
 		final Vector tangent = calcAverageTangent(seg1, seg2);
-
 		final PrecisionPoint p3 = translate(p4, tangent, -ctrlDist1);
 		final PrecisionPoint p5 = translate(p4, tangent, ctrlDist2);
+
+		final PointList points = new PointList(7);
+		points.addPoint(toPoint(p1));
+		points.addPoint(toPoint(p2));
+		points.addPoint(toPoint(p3));
+		points.addPoint(toPoint(p4));
+		points.addPoint(toPoint(p5));
+		points.addPoint(toPoint(p6));
+		points.addPoint(toPoint(p7));
+
+		conn.setPoints(points);
+	}
+
+	private static final double SELF_LOOP_MIN_LIFT = 45.0;
+	private static final double SELF_LOOP_WIDTH_FACTOR = 0.7;
+	private static final double SELF_LOOP_SPREAD_FACTOR = 0.6;
+	private static final double SELF_LOOP_WING_FACTOR = 0.3;
+	private static final double SELF_LOOP_SHOULDER_FACTOR = 0.45;
+
+	private static void routeSelfLoop(final Connection conn, final Bendpoint bp) {
+		final PrecisionPoint p4Model = new PrecisionPoint(bp.getLocation());
+		conn.translateToAbsolute(p4Model);
+
+		final IFigure owner = conn.getSourceAnchor().getOwner();
+		final Rectangle bounds = owner.getBounds().getCopy();
+		owner.translateToAbsolute(bounds);
+
+		final PrecisionPoint leftVector = new PrecisionPoint(bounds.x - bounds.width, bounds.getCenter().y);
+		final PrecisionPoint rightVector = new PrecisionPoint(bounds.right() + bounds.width, bounds.getCenter().y);
+
+		final PrecisionPoint p1 = new PrecisionPoint(conn.getSourceAnchor().getLocation(leftVector));
+		final PrecisionPoint p7 = new PrecisionPoint(conn.getTargetAnchor().getLocation(rightVector));
+
+		conn.translateToRelative(p1);
+		final PrecisionPoint p4 = new PrecisionPoint(p4Model);
+		conn.translateToRelative(p4);
+		conn.translateToRelative(p7);
+
+		p4.setPreciseX((p1.preciseX() + p7.preciseX()) / 2.0);
+
+		final double dynamicLift = p1.preciseY() - p4.preciseY();
+		final double sign = (dynamicLift >= 0) ? 1.0 : -1.0;
+		final double visualLift = Math.max(Math.abs(dynamicLift), SELF_LOOP_MIN_LIFT);
+
+		final double anchorWidth = Math.max(Math.abs(p7.preciseX() - p1.preciseX()), 10.0);
+		final double spreadX = Math.max(anchorWidth * SELF_LOOP_WIDTH_FACTOR, visualLift * SELF_LOOP_SPREAD_FACTOR);
+
+		final double wingY = p1.preciseY() - visualLift * SELF_LOOP_WING_FACTOR * sign;
+		final double shoulderY = p4.preciseY();
+		final double shoulderSpread = spreadX * SELF_LOOP_SHOULDER_FACTOR;
+
+		final double p1Dir = (p1.preciseX() <= p7.preciseX()) ? -1.0 : 1.0;
+		final double p7Dir = (p7.preciseX() >= p1.preciseX()) ? 1.0 : -1.0;
+
+		final PrecisionPoint p2 = new PrecisionPoint(p1.preciseX() + spreadX * 0.5 * p1Dir, wingY);
+		final PrecisionPoint p3 = new PrecisionPoint(p4.preciseX() + shoulderSpread * p1Dir, shoulderY);
+		final PrecisionPoint p5 = new PrecisionPoint(p4.preciseX() + shoulderSpread * p7Dir, shoulderY);
+		final PrecisionPoint p6 = new PrecisionPoint(p7.preciseX() + spreadX * 0.5 * p7Dir, wingY);
 
 		final PointList points = new PointList(7);
 		points.addPoint(toPoint(p1));
@@ -95,7 +159,6 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 			bounds = owner.getBounds().getCopy();
 			owner.translateToAbsolute(bounds);
 		}
-
 		conn.translateToRelative(bounds);
 
 		final Vector normal = EdgeDirection.of(toPoint(anchor), bounds).toNormal();
@@ -111,7 +174,6 @@ public class ECCTransitionRouter extends BendpointConnectionRouter {
 	}
 
 	private static Vector calcAverageTangent(final Vector seg1, final Vector seg2) {
-
 		final Vector tangent = getNormalized(seg1).getAdded(getNormalized(seg2));
 		final double len = tangent.getLength();
 		if (len < EPSILON) {
