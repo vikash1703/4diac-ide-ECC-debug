@@ -217,7 +217,20 @@
 				</with>
 			</activeWhen>
 		</handler>
+
+		<handler
+			class="org.eclipse.fordiac.ide.debug.ui.handler.ToggleModelBreakpointHandler"
+			commandId="org.eclipse.debug.ui.commands.ToggleBreakpoint">
+			<activeWhen>
+				<with variable="selection">
+					<iterate ifEmpty="false" operator="or">
+						<adapt type="org.eclipse.fordiac.ide.model.libraryElement.ECState"/>
+					</iterate>
+				</with>
+			</activeWhen>
+		</handler>
 	</extension>
+
 	<extension
 		point="org.eclipse.ui.bindings">
 		<key
@@ -263,4 +276,27 @@
 			modelId="org.eclipse.fordiac.ide.debug.model">
 		</variableValueEditor>
 	</extension>
+	<extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="popup:org.eclipse.ui.popup.any?after=additions">
+         <command
+               commandId="org.eclipse.debug.ui.commands.ToggleBreakpoint"
+               label="Toggle Breakpoint"
+               style="push">
+            <visibleWhen checkEnabled="true">
+            </visibleWhen>
+         </command>
+      </menuContribution>
+   </extension>
+   <extension point="org.eclipse.core.runtime.adapters">
+   <factory
+      class="org.eclipse.fordiac.ide.debug.ui.breakpoint.ToggleModelBreakpointsTargetExtension"
+      adaptableType="org.eclipse.fordiac.ide.model.libraryElement.INamedElement">
+      <adapter type="org.eclipse.debug.ui.actions.IToggleBreakpointsTarget"/>
+   </factory>
+   <factory
+      class="org.eclipse.fordiac.ide.debug.ui.breakpoint.ToggleModelBreakpointsTargetExtension"
+      adaptableType="org.eclipse.gef.EditPart">
+      <adapter type="org.eclipse.debug.ui.actions.IToggleBreakpointsTarget"/>
+   </factory>
+</extension>
 </plugin>
