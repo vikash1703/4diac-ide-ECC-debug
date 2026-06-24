@@ -92,11 +92,11 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 			return result;
 		}
 
-		final List<ECTransition> candidates = (transition != null && transition.getSource() == state)
-				? state.getOutTransitions()
-				: state.getInTransitions();
+		final List<ECTransition> allTransitions = new ArrayList<>();
+		allTransitions.addAll(state.getOutTransitions());
+		allTransitions.addAll(state.getInTransitions());
 
-		for (final ECTransition t : candidates) {
+		for (final ECTransition t : allTransitions) {
 			if (t.getPosition() == null) {
 				continue;
 			}
