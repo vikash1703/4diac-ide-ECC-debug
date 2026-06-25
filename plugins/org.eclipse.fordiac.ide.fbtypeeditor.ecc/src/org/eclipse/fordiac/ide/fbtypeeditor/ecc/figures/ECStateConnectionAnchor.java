@@ -12,8 +12,8 @@
 *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.figures;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.eclipse.draw2d.AbstractConnectionAnchor;
 import org.eclipse.draw2d.geometry.Point;
@@ -87,33 +87,19 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 	}
 
 	private List<ECTransition> getTransitionsOnEdge(final EdgeDirection edge, final Rectangle nameBounds) {
-		final List<ECTransition> result = new ArrayList<>();
 		if (state == null) {
-			return result;
+			return List.of();
 		}
 
-		final List<ECTransition> candidates = (transition != null && transition.getSource() == state)
-				? state.getOutTransitions()
-				: state.getInTransitions();
-
-		for (final ECTransition t : candidates) {
-			if (t.getPosition() == null) {
-				continue;
-			}
-			final Point bendPoint = t.getPosition().toScreenPoint();
-
-			if (EdgeDirection.of(bendPoint, nameBounds, state) == edge) {
-				result.add(t);
-			}
-		}
-
-		result.sort((t1, t2) -> {
-			final Point p1 = t1.getPosition().toScreenPoint();
-			final Point p2 = t2.getPosition().toScreenPoint();
-			return (edge == EdgeDirection.TOP || edge == EdgeDirection.BOTTOM) ? Integer.compare(p1.x, p2.x)
-					: Integer.compare(p1.y, p2.y);
-		});
-		return result;
+		return Stream.concat(state.getOutTransitions().stream(), state.getInTransitions().stream())
+				.filter(t -> t.getPosition() != null)
+				.filter(t -> EdgeDirection.of(t.getPosition().toScreenPoint(), nameBounds, state) == edge)
+				.sorted((t1, t2) -> {
+					final Point p1 = t1.getPosition().toScreenPoint();
+					final Point p2 = t2.getPosition().toScreenPoint();
+					return (edge == EdgeDirection.TOP || edge == EdgeDirection.BOTTOM) ? Integer.compare(p1.x, p2.x)
+							: Integer.compare(p1.y, p2.y);
+				}).toList();
 	}
 
 	private static int indexOf(final List<ECTransition> list, final ECTransition t) {
