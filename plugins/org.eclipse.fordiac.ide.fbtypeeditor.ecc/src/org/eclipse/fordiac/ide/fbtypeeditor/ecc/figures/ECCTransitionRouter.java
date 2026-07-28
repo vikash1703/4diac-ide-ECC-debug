@@ -27,7 +27,7 @@ import org.eclipse.draw2d.geometry.Vector;
 
 public class ECCTransitionRouter extends BendpointConnectionRouter {
 
-	private static final double CTRL_POINT_FACTOR = 0.3;
+	private static final double CTRL_POINT_FACTOR = 0.70;
 	private static final double MIN_LENGTH = 1.0;
 	private static final double EPSILON = 0.001;
 	private static final double MAX_HANDLE_DISTANCE = 150.0;

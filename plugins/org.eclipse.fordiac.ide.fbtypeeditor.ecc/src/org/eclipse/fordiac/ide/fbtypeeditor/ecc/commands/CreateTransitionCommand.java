@@ -49,10 +49,10 @@ public class CreateTransitionCommand extends CreationCommand {
 	private Event conditionEvent;
 
 	/** Offset used for the X-coordinate of the bend point in a self-transition. */
-	private static final int SELF_TRANSITION_X_OFFSET = 10;
+	private static final int SELF_TRANSITION_X_OFFSET = 50;
 
 	/** Offset used for the Y-coordinate of the bend point in a self-transition. */
-	private static final int SELF_TRANSITION_Y_OFFSET = 50;
+	private static final int SELF_TRANSITION_Y_OFFSET = -110;
 
 	public CreateTransitionCommand() {
 	}
@@ -161,7 +161,10 @@ public class CreateTransitionCommand extends CreationCommand {
 
 	private Position calcTransitionBendPoint() {
 		final Position pos = LibraryElementFactory.eINSTANCE.createPosition();
-		if (source.equals(destination)) { // self transition
+		if (source.equals(destination)) {
+			// Self transition: place the bend point above the state so the loop,
+			// which leaves on the right edge and re-enters on the left one, arcs
+			// over the top of the state.
 			pos.setX(source.getPosition().getX() + SELF_TRANSITION_X_OFFSET);
 			pos.setY(source.getPosition().getY() + SELF_TRANSITION_Y_OFFSET);
 		} else {
