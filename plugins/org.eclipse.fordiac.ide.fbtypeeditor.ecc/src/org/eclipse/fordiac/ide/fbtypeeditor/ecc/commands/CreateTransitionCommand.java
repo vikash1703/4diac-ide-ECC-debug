@@ -49,10 +49,13 @@ public class CreateTransitionCommand extends CreationCommand {
 	private Event conditionEvent;
 
 	/** Offset used for the X-coordinate of the bend point in a self-transition. */
-	private static final int SELF_TRANSITION_X_OFFSET = 10;
+	private static final int SELF_TRANSITION_LABEL_PADDING = 40;
+
+	/** Approximate width of one name character in a state's name label. */
+	private static final int SELF_TRANSITION_CHAR_WIDTH = 11;
 
 	/** Offset used for the Y-coordinate of the bend point in a self-transition. */
-	private static final int SELF_TRANSITION_Y_OFFSET = 50;
+	private static final int SELF_TRANSITION_Y_OFFSET = -100;
 
 	public CreateTransitionCommand() {
 	}
@@ -162,13 +165,19 @@ public class CreateTransitionCommand extends CreationCommand {
 	private Position calcTransitionBendPoint() {
 		final Position pos = LibraryElementFactory.eINSTANCE.createPosition();
 		if (source.equals(destination)) { // self transition
-			pos.setX(source.getPosition().getX() + SELF_TRANSITION_X_OFFSET);
+			pos.setX(source.getPosition().getX() + calcSelfTransitionXOffset());
 			pos.setY(source.getPosition().getY() + SELF_TRANSITION_Y_OFFSET);
 		} else {
 			pos.setX((source.getPosition().getX() + destination.getPosition().getX()) / 2.0);
 			pos.setY((source.getPosition().getY() + destination.getPosition().getY()) / 2.0);
 		}
 		return pos;
+	}
+
+	private double calcSelfTransitionXOffset() {
+		final String name = source.getName();
+		final int nameLength = (name != null) ? name.length() : 0;
+		return (SELF_TRANSITION_LABEL_PADDING + (nameLength * SELF_TRANSITION_CHAR_WIDTH)) / 2.0;
 	}
 
 	@Override
