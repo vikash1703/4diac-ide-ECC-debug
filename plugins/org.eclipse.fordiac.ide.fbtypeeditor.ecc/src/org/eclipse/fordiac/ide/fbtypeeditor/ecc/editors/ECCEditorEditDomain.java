@@ -10,6 +10,7 @@
  * Contributors:
  *   Alois Zoitl - initial API and implementation and/or initial documentation
  *   Kirill Dorofeev - extended to support on-the-fly transitions and states creation
+ *   Vikash Kumar Sinha - create a state and start renaming on canvas double-click
  *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.editors;
 
@@ -18,6 +19,7 @@ import org.eclipse.fordiac.ide.fbtypeeditor.ecc.commands.CreateECStateCommand;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.commands.CreateTransitionCommand;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts.ECActionAlgorithmEditPart;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts.ECActionOutputEventEditPart;
+import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts.ECCEditPart;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts.ECStateEditPart;
 import org.eclipse.fordiac.ide.gef.editparts.ConnCreateDirectEditDragTrackerProxy;
 import org.eclipse.fordiac.ide.gef.tools.AdvancedPanningSelectionTool;
@@ -26,6 +28,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.ECC;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
 import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.gef.DefaultEditDomain;
+import org.eclipse.gef.EditPart;
 import org.eclipse.gef.EditPartViewer;
 import org.eclipse.gef.GraphicalEditPart;
 import org.eclipse.gef.SharedCursors;
@@ -86,6 +89,20 @@ final class ECCEditorEditDomain extends DefaultEditDomain {
 			if (getDragTracker() instanceof final ConnCreateDirectEditDragTrackerProxy ccdProxy) {
 				ccdProxy.getConnectionTool().setDisabledCursor(SharedCursors.CURSOR_TREE_ADD);
 			}
+		}
+
+		@Override
+		protected boolean handleDoubleClick(final int button) {
+			if (button == 1) {
+				final EditPart target = getTargetEditPart();
+				final boolean onEmptyCanvas = target == null || target instanceof ECCEditPart
+						|| target == getCurrentViewer().getRootEditPart();
+				if (onEmptyCanvas && getCurrentViewer().getContents() instanceof final ECCEditPart eccEditPart) {
+					eccEditPart.createStateAndDirectEdit(getLocation().getCopy());
+					return true;
+				}
+			}
+			return super.handleDoubleClick(button);
 		}
 	}
 
