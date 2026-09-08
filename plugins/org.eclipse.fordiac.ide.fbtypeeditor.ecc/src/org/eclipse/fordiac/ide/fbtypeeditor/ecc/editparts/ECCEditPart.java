@@ -35,7 +35,10 @@ import org.eclipse.fordiac.ide.model.libraryElement.ECC;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
 import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.gef.EditPolicy;
+import org.eclipse.gef.Request;
+import org.eclipse.gef.RequestConstants;
 import org.eclipse.gef.editpolicies.RootComponentEditPolicy;
+import org.eclipse.gef.requests.SelectionRequest;
 import org.eclipse.swt.widgets.Display;
 
 public class ECCEditPart extends AbstractDiagramEditPart {
@@ -102,9 +105,19 @@ public class ECCEditPart extends AbstractDiagramEditPart {
 
 	}
 
-	public void createStateAndDirectEdit(final Point mouseLocation) {
+	@Override
+	public void performRequest(final Request request) {
+		if (request.getType() == RequestConstants.REQ_OPEN
+				&& request instanceof final SelectionRequest selectionRequest) {
+			createStateAndDirectEdit(selectionRequest);
+		} else {
+			super.performRequest(request);
+		}
+	}
+
+	public void createStateAndDirectEdit(final SelectionRequest request) {
 		final ECState newState = (ECState) new StateCreationFactory().getNewObject();
-		final Point location = mouseLocation.getCopy();
+		final Point location = request.getLocation().getCopy();
 		getFigure().translateToRelative(location);
 		final Position pos = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(location.x, location.y);
 		final CreateECStateCommand cmd = new CreateECStateCommand(newState, pos, getCastedECCModel());
