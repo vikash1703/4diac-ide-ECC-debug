@@ -30,6 +30,7 @@ import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editors.StateCreationFactory;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.figures.ECCTransitionRouter;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.policies.ECCXYLayoutEditPolicy;
 import org.eclipse.fordiac.ide.gef.editparts.AbstractDiagramEditPart;
+import org.eclipse.fordiac.ide.gef.editparts.LabelDirectEditManager;
 import org.eclipse.fordiac.ide.model.CoordinateConverter;
 import org.eclipse.fordiac.ide.model.libraryElement.ECC;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
@@ -37,8 +38,10 @@ import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.gef.EditPolicy;
 import org.eclipse.gef.Request;
 import org.eclipse.gef.RequestConstants;
+import org.eclipse.gef.commands.CommandStack;
 import org.eclipse.gef.editpolicies.RootComponentEditPolicy;
 import org.eclipse.gef.requests.SelectionRequest;
+import org.eclipse.gef.tools.DirectEditManager;
 import org.eclipse.swt.widgets.Display;
 
 public class ECCEditPart extends AbstractDiagramEditPart {
@@ -128,9 +131,34 @@ public class ECCEditPart extends AbstractDiagramEditPart {
 			}
 			if (getViewer().getEditPartRegistry().get(newState) instanceof final ECStateEditPart stateEditPart) {
 				getViewer().select(stateEditPart);
-				stateEditPart.performDirectEdit();
+				directEditNewState(stateEditPart);
 			}
 		});
+	}
+
+	private void directEditNewState(final ECStateEditPart stateEditPart) {
+		final CommandStack commandStack = getViewer().getEditDomain().getCommandStack();
+		final DirectEditManager manager = new LabelDirectEditManager(stateEditPart, stateEditPart.getNameLabel()) {
+			private boolean committed;
+
+			@Override
+			protected void commit() {
+				committed = true;
+				super.commit();
+			}
+
+			@Override
+			protected void bringDown() {
+				super.bringDown();
+				if (!committed) {
+					committed = true;
+					if (commandStack.canUndo()) {
+						commandStack.undo();
+					}
+				}
+			}
+		};
+		manager.show();
 	}
 
 	/**
