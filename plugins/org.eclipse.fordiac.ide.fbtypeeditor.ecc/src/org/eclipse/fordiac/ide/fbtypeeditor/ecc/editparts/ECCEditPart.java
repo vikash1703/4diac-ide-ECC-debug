@@ -10,6 +10,8 @@
  * Contributors:
  *   Gerhard Ebenhofer, Alois Zoitl
  *     - initial API and implementation and/or initial documentation
+ *   Vikash Kumar Sinha
+ *     - create a state and start renaming on canvas double-click
  *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts;
 
@@ -18,17 +20,26 @@ import java.util.List;
 
 import org.eclipse.draw2d.ConnectionRouter;
 import org.eclipse.draw2d.IFigure;
+import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.common.notify.impl.AdapterImpl;
+import org.eclipse.fordiac.ide.fbtypeeditor.ecc.commands.CreateECStateCommand;
+import org.eclipse.fordiac.ide.fbtypeeditor.ecc.editors.StateCreationFactory;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.figures.ECCTransitionRouter;
 import org.eclipse.fordiac.ide.fbtypeeditor.ecc.policies.ECCXYLayoutEditPolicy;
 import org.eclipse.fordiac.ide.gef.editparts.AbstractDiagramEditPart;
+import org.eclipse.fordiac.ide.model.CoordinateConverter;
 import org.eclipse.fordiac.ide.model.libraryElement.ECC;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
+import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.gef.EditPolicy;
+import org.eclipse.gef.Request;
+import org.eclipse.gef.RequestConstants;
 import org.eclipse.gef.editpolicies.RootComponentEditPolicy;
+import org.eclipse.gef.requests.SelectionRequest;
+import org.eclipse.swt.widgets.Display;
 
 public class ECCEditPart extends AbstractDiagramEditPart {
 
@@ -92,6 +103,34 @@ public class ECCEditPart extends AbstractDiagramEditPart {
 		// model elements
 		installEditPolicy(EditPolicy.LAYOUT_ROLE, new ECCXYLayoutEditPolicy());
 
+	}
+
+	@Override
+	public void performRequest(final Request request) {
+		if (request.getType() == RequestConstants.REQ_OPEN
+				&& request instanceof final SelectionRequest selectionRequest) {
+			createStateAndDirectEdit(selectionRequest);
+		} else {
+			super.performRequest(request);
+		}
+	}
+
+	public void createStateAndDirectEdit(final SelectionRequest request) {
+		final ECState newState = (ECState) new StateCreationFactory().getNewObject();
+		final Point location = request.getLocation().getCopy();
+		getFigure().translateToRelative(location);
+		final Position pos = CoordinateConverter.INSTANCE.createPosFromScreenCoordinates(location.x, location.y);
+		final CreateECStateCommand cmd = new CreateECStateCommand(newState, pos, getCastedECCModel());
+		getViewer().getEditDomain().getCommandStack().execute(cmd);
+		Display.getDefault().asyncExec(() -> {
+			if (getViewer() == null) {
+				return;
+			}
+			if (getViewer().getEditPartRegistry().get(newState) instanceof final ECStateEditPart stateEditPart) {
+				getViewer().select(stateEditPart);
+				stateEditPart.performDirectEdit();
+			}
+		});
 	}
 
 	/**
