@@ -139,19 +139,19 @@ public class ECCEditPart extends AbstractDiagramEditPart {
 	private void directEditNewState(final ECStateEditPart stateEditPart) {
 		final CommandStack commandStack = getViewer().getEditDomain().getCommandStack();
 		final DirectEditManager manager = new LabelDirectEditManager(stateEditPart, stateEditPart.getNameLabel()) {
-			private boolean committed;
+			private boolean nameEntered;
 
 			@Override
 			protected void commit() {
-				committed = true;
+				nameEntered = getCellEditor() != null && getCellEditor().isDirty();
 				super.commit();
 			}
 
 			@Override
 			protected void bringDown() {
 				super.bringDown();
-				if (!committed) {
-					committed = true;
+				if (!nameEntered) {
+					nameEntered = true;
 					if (commandStack.canUndo()) {
 						commandStack.undo();
 					}
@@ -188,5 +188,4 @@ public class ECCEditPart extends AbstractDiagramEditPart {
 	protected ConnectionRouter createConnectionRouter(final IFigure figure) {
 		return new ECCTransitionRouter();
 	}
-
 }
