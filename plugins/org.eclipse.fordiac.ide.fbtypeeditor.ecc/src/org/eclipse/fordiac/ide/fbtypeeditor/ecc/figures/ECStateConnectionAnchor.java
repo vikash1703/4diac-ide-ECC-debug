@@ -12,8 +12,10 @@
 *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.figures;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.draw2d.AbstractConnectionAnchor;
@@ -45,6 +47,10 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 		return (ECStateFigure) super.getOwner();
 	}
 
+	ECTransition getTransition() {
+		return transition;
+	}
+
 	@Override
 	public Point getReferencePoint() {
 		if (transition != null && transition.getPosition() != null) {
@@ -65,6 +71,12 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 		return applySpacing(nameBounds, edgeOf(transition, sourceEnd, ref, nameBounds));
 	}
 
+	EdgeDirection getEdgeForReference(final Point reference) {
+		final Rectangle nameBounds = getOwner().getNameLabel().getBounds().getCopy();
+		getOwner().getNameLabel().translateToAbsolute(nameBounds);
+		return edgeOf(transition, sourceEnd, reference, nameBounds);
+	}
+
 	private EdgeDirection edgeOf(final ECTransition ecTransition, final boolean isSourceEnd, final Point reference,
 			final Rectangle nameBounds) {
 		if (isSelfTransition(ecTransition) && ecTransition.getPosition() != null) {
@@ -74,25 +86,32 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 	}
 
 	private Point applySpacing(final Rectangle bounds, final EdgeDirection edge) {
-		final List<Endpoint> ordered = endpointsOnEdge(edge, bounds);
-		final int index = Math.max(0, ordered.indexOf(new Endpoint(transition, sourceEnd)));
+		final List<Endpoint> ordered = new ArrayList<>(endpointsOnEdge(edge, bounds));
+		final Endpoint current = new Endpoint(transition, sourceEnd);
+
+		if (transition != null && !ordered.contains(current)) {
+			ordered.add(current);
+			ordered.sort(comparator(edge));
+		}
+
+		final int index = transition == null ? 0 : Math.max(0, ordered.indexOf(current));
 		final int count = Math.max(1, ordered.size());
 
 		return switch (edge) {
 		case TOP -> {
-			final int slotWidth = bounds.width / (count + 1);
+			final int slotWidth = Math.max(1, bounds.width / (count + 1));
 			yield new Point(bounds.x + (index + 1) * slotWidth, bounds.y);
 		}
 		case BOTTOM -> {
-			final int slotWidth = bounds.width / (count + 1);
+			final int slotWidth = Math.max(1, bounds.width / (count + 1));
 			yield new Point(bounds.x + (index + 1) * slotWidth, bounds.y + bounds.height);
 		}
 		case LEFT -> {
-			final int slotHeight = bounds.height / (count + 1);
+			final int slotHeight = Math.max(1, bounds.height / (count + 1));
 			yield new Point(bounds.x, bounds.y + (index + 1) * slotHeight);
 		}
 		case RIGHT -> {
-			final int slotHeight = bounds.height / (count + 1);
+			final int slotHeight = Math.max(1, bounds.height / (count + 1));
 			yield new Point(bounds.x + bounds.width, bounds.y + (index + 1) * slotHeight);
 		}
 		};
@@ -106,13 +125,21 @@ public class ECStateConnectionAnchor extends AbstractConnectionAnchor {
 		return Stream
 				.concat(state.getOutTransitions().stream().map(t -> new Endpoint(t, true)),
 						state.getInTransitions().stream().map(t -> new Endpoint(t, false)))
-				.filter(e -> e.transition().getPosition() != null)
-				.filter(e -> edgeOf(e.transition(), e.sourceEnd(), bendPoint(e.transition()), nameBounds) == edge)
-				.sorted(comparator(edge)).toList();
+				.filter(e -> e.transition() != null).filter(e -> e.transition().getPosition() != null).filter(e -> {
+					final EdgeDirection effectiveEdge = ECCTransitionRouter.getEffectiveEdge(e.transition(),
+							e.sourceEnd());
+
+					if (effectiveEdge != null) {
+						return effectiveEdge == edge;
+					}
+
+					return edgeOf(e.transition(), e.sourceEnd(), bendPoint(e.transition()), nameBounds) == edge;
+				}).distinct().sorted(comparator(edge)).collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	private Comparator<Endpoint> comparator(final EdgeDirection edge) {
 		final boolean horizontal = (edge == EdgeDirection.TOP) || (edge == EdgeDirection.BOTTOM);
+
 		return Comparator
 				.<Endpoint>comparingInt(e -> horizontal ? bendPoint(e.transition()).x : bendPoint(e.transition()).y)
 				.thenComparing(Endpoint::sourceEnd);

@@ -15,6 +15,7 @@
  *     - added tooltip functionality at state
  *     - added refresh tooltip at state
  *   Alois Zoitl - modernized and reworked ECC look
+ *   Vikash Kumar Sinha - revalidate transitions when a state changes
  *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.ecc.editparts;
 
@@ -41,7 +42,6 @@ import org.eclipse.fordiac.ide.model.libraryElement.ECAction;
 import org.eclipse.fordiac.ide.model.libraryElement.ECState;
 import org.eclipse.fordiac.ide.model.libraryElement.ECTransition;
 import org.eclipse.fordiac.ide.model.libraryElement.INamedElement;
-import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage;
 import org.eclipse.gef.ConnectionEditPart;
 import org.eclipse.gef.EditPolicy;
 import org.eclipse.gef.GraphicalEditPart;
@@ -60,13 +60,9 @@ public class ECStateEditPart extends AbstractDirectEditableEditPart implements N
 		public void notifyChanged(final Notification notification) {
 			super.notifyChanged(notification);
 			if (Notification.REMOVING_ADAPTER != notification.getEventType()) {
-				final Object feature = notification.getFeature();
-				if ((!(LibraryElementPackage.eINSTANCE.getBaseECAction_Algorithm().equals(feature))
-						&& !(LibraryElementPackage.eINSTANCE.getBaseECAction_Output().equals(feature))
-						&& !(LibraryElementPackage.eINSTANCE.getECState().equals(feature)))) {
-					refreshStateTooltip();
-					refresh();
-				}
+				refreshStateTooltip();
+				refresh();
+				revalidateTransitions();
 			}
 		}
 
@@ -75,6 +71,12 @@ public class ECStateEditPart extends AbstractDirectEditableEditPart implements N
 	private void refreshStateTooltip() {
 		getFigure().getToolTip().setECState(this.getModel());
 
+	}
+
+	private void revalidateTransitions() {
+		if (getParent() instanceof final ECCEditPart eccEditPart) {
+			eccEditPart.revalidateTransitions();
+		}
 	}
 
 	@Override
@@ -118,7 +120,9 @@ public class ECStateEditPart extends AbstractDirectEditableEditPart implements N
 
 	@Override
 	protected IFigure createFigure() {
-		return new ECStateFigure(getModel());
+		final ECStateFigure figure = new ECStateFigure(getModel());
+		figure.addFigureListener(source -> revalidateTransitions());
+		return figure;
 	}
 
 	@Override
@@ -164,6 +168,7 @@ public class ECStateEditPart extends AbstractDirectEditableEditPart implements N
 		getFigure().setHasAction(!getModel().getECAction().isEmpty());
 		refreshStateTooltip();
 		super.refreshVisuals();
+		revalidateTransitions();
 	}
 
 	@Override
@@ -236,5 +241,4 @@ public class ECStateEditPart extends AbstractDirectEditableEditPart implements N
 		}
 		return super.getAdapter(adapter);
 	}
-
 }
